@@ -29,30 +29,11 @@ import { PagesCountLimit } from "./pdf_viewer.js";
  * @property {HTMLDivElement} toolbar - Container for the secondary toolbar.
  * @property {HTMLButtonElement} toggleButton - Button to toggle the visibility
  *   of the secondary toolbar.
- * @property {HTMLButtonElement} presentationModeButton - Button for entering
- *   presentation mode.
- * @property {HTMLButtonElement} openFileButton - Button to open a file.
  * @property {HTMLButtonElement} printButton - Button to print the document.
  * @property {HTMLButtonElement} downloadButton - Button to download the
  *   document.
- * @property {HTMLAnchorElement} viewBookmarkButton - Button to obtain a
- *   bookmark link to the current location in the document.
- * @property {HTMLButtonElement} firstPageButton - Button to go to the first
- *   page in the document.
- * @property {HTMLButtonElement} lastPageButton - Button to go to the last page
- *   in the document.
- * @property {HTMLButtonElement} pageRotateCwButton - Button to rotate the pages
- *   clockwise.
- * @property {HTMLButtonElement} pageRotateCcwButton - Button to rotate the
- *   pages counterclockwise.
- * @property {HTMLButtonElement} cursorSelectToolButton - Button to enable the
+ * @property {HTMLButtonElement} cursorToolButton - Button to enable the
  *   select tool.
- * @property {HTMLButtonElement} cursorHandToolButton - Button to enable the
- *   hand tool.
- * @property {HTMLButtonElement} imageAltTextSettingsButton - Button for opening
- *   the image alt-text settings dialog.
- * @property {HTMLButtonElement} documentPropertiesButton - Button for opening
- *   the document properties dialog.
  */
 
 class SecondaryToolbar {
@@ -65,38 +46,8 @@ class SecondaryToolbar {
   constructor(options, eventBus) {
     this.#opts = options;
     const buttons = [
-      {
-        element: options.presentationModeButton,
-        eventName: "presentationmode",
-        close: true,
-      },
       { element: options.printButton, eventName: "print", close: true },
       { element: options.downloadButton, eventName: "download", close: true },
-      { element: options.viewBookmarkButton, eventName: null, close: true },
-      { element: options.firstPageButton, eventName: "firstpage", close: true },
-      { element: options.lastPageButton, eventName: "lastpage", close: true },
-      {
-        element: options.pageRotateCwButton,
-        eventName: "rotatecw",
-        close: false,
-      },
-      {
-        element: options.pageRotateCcwButton,
-        eventName: "rotateccw",
-        close: false,
-      },
-      {
-        element: options.cursorSelectToolButton,
-        eventName: "switchcursortool",
-        eventDetails: { tool: CursorTool.SELECT },
-        close: true,
-      },
-      {
-        element: options.cursorHandToolButton,
-        eventName: "switchcursortool",
-        eventDetails: { tool: CursorTool.HAND },
-        close: true,
-      },
       {
         element: options.scrollPageButton,
         eventName: "switchscrollmode",
@@ -139,24 +90,7 @@ class SecondaryToolbar {
         eventDetails: { mode: SpreadMode.EVEN },
         close: true,
       },
-      {
-        element: options.imageAltTextSettingsButton,
-        eventName: "imagealttextsettings",
-        close: true,
-      },
-      {
-        element: options.documentPropertiesButton,
-        eventName: "documentproperties",
-        close: true,
-      },
     ];
-    if (typeof PDFJSDev === "undefined" || PDFJSDev.test("GENERIC")) {
-      buttons.push({
-        element: options.openFileButton,
-        eventName: "openfile",
-        close: true,
-      });
-    }
 
     this.eventBus = eventBus;
     this.opened = false;
@@ -177,37 +111,19 @@ class SecondaryToolbar {
 
   setPageNumber(pageNumber) {
     this.pageNumber = pageNumber;
-    this.#updateUIState();
   }
 
   setPagesCount(pagesCount) {
     this.pagesCount = pagesCount;
-    this.#updateUIState();
   }
 
   reset() {
     this.pageNumber = 0;
     this.pagesCount = 0;
-    this.#updateUIState();
 
     // Reset the Scroll/Spread buttons too, since they're document specific.
-    this.eventBus.dispatch("switchcursortool", { source: this, reset: true });
     this.#scrollModeChanged({ mode: ScrollMode.VERTICAL });
     this.#spreadModeChanged({ mode: SpreadMode.NONE });
-  }
-
-  #updateUIState() {
-    const {
-      firstPageButton,
-      lastPageButton,
-      pageRotateCwButton,
-      pageRotateCcwButton,
-    } = this.#opts;
-
-    firstPageButton.disabled = this.pageNumber <= 1;
-    lastPageButton.disabled = this.pageNumber >= this.pagesCount;
-    pageRotateCwButton.disabled = this.pagesCount === 0;
-    pageRotateCcwButton.disabled = this.pagesCount === 0;
   }
 
   #bindListeners(buttons) {
@@ -235,19 +151,8 @@ class SecondaryToolbar {
       });
     }
 
-    eventBus._on("cursortoolchanged", this.#cursorToolChanged.bind(this));
     eventBus._on("scrollmodechanged", this.#scrollModeChanged.bind(this));
     eventBus._on("spreadmodechanged", this.#spreadModeChanged.bind(this));
-  }
-
-  #cursorToolChanged({ tool, disabled }) {
-    const { cursorSelectToolButton, cursorHandToolButton } = this.#opts;
-
-    toggleCheckedBtn(cursorSelectToolButton, tool === CursorTool.SELECT);
-    toggleCheckedBtn(cursorHandToolButton, tool === CursorTool.HAND);
-
-    cursorSelectToolButton.disabled = disabled;
-    cursorHandToolButton.disabled = disabled;
   }
 
   #scrollModeChanged({ mode }) {

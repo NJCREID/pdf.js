@@ -130,16 +130,16 @@
   --text-primary-color: #15141a;
 
   --message-bar-icon: url(images/secondaryToolbarButton-documentProperties.svg);
-  --message-bar-icon-color: #0060df;
-  --message-bar-bg-color: #deeafc;
+  --message-bar-icon-color: #666666;
+  --message-bar-bg-color: rgb(255 255 255);
   --message-bar-fg-color: var(--text-primary-color);
   --message-bar-border-color: rgb(0 0 0 / 0.08);
 
-  --undo-button-bg-color: rgb(21 20 26 / 0.07);
-  --undo-button-bg-color-hover: rgb(21 20 26 / 0.14);
-  --undo-button-bg-color-active: rgb(21 20 26 / 0.21);
+  --undo-button-bg-color: rgb(102 102 102 / 0.1);
+  --undo-button-bg-color-hover: rgb(102 102 102 / 0.2);
+  --undo-button-bg-color-active: rgb(102 102 102 / 0.3);
 
-  --undo-button-border: 1px solid #0060df;
+  --undo-button-border: 1px solid #666666;
 
   --undo-button-fg-color: var(--message-bar-fg-color);
   --undo-button-fg-color-hover: var(--undo-button-fg-color);
@@ -148,15 +148,15 @@
   @media (prefers-color-scheme: dark) {
     --text-primary-color: #fbfbfe;
 
-    --message-bar-icon-color: #73a7f3;
-    --message-bar-bg-color: #003070;
+    --message-bar-icon-color: #cccccc;
+    --message-bar-bg-color: #42414d;
     --message-bar-border-color: rgb(255 255 255 / 0.08);
 
-    --undo-button-bg-color: rgb(255 255 255 / 0.08);
-    --undo-button-bg-color-hover: rgb(255 255 255 / 0.14);
-    --undo-button-bg-color-active: rgb(255 255 255 / 0.21);
+    --undo-button-bg-color: rgb(204 204 204 / 0.1);
+    --undo-button-bg-color-hover: rgb(204 204 204 / 0.2);
+    --undo-button-bg-color-active: rgb(204 204 204 / 0.3);
 
-    --undo-button-border: 1px solid #0df;
+    --undo-button-border: 1px solid #cccccc;
   }
 
   @media screen and (forced-colors: active) {
@@ -183,29 +183,52 @@
   transform: translateX(-50%);
   z-index: 10;
 
-  padding-block: 8px;
-  padding-inline: 16px 8px;
+  padding: 8px 16px;
+  background: var(--message-bar-bg-color);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  border-top: 2px solid var(--message-bar-icon-color);
+  border-bottom: 2px solid var(--message-bar-icon-color);
 
   font: menu;
   font-size: 15px;
-
   cursor: default;
 
   button {
     cursor: pointer;
   }
 
+  > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+
+    &::before {
+      content: "";
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      mask-image: var(--message-bar-icon);
+      mask-size: cover;
+      background-color: var(--message-bar-icon-color);
+      flex-shrink: 0;
+    }
+  }
+
   #editorUndoBarUndoButton {
-    border-radius: 4px;
+    border-radius: 0;
     font-weight: 590;
     line-height: 19.5px;
     color: var(--undo-button-fg-color);
-    border: var(--undo-button-border);
+    border: none;
     padding: 4px 16px;
     margin-inline-start: 8px;
     height: 32px;
-
-    background-color: var(--undo-button-bg-color);
+    background-color: transparent;
+    border-left: 2px solid var(--message-bar-icon-color);
+    transition: background-color 0.2s;
 
     &:hover {
       background-color: var(--undo-button-bg-color-hover);
@@ -216,9 +239,5 @@
       background-color: var(--undo-button-bg-color-active);
       color: var(--undo-button-fg-color-active);
     }
-  }
-
-  > div {
-    align-items: center;
   }
 }

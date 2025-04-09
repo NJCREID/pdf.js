@@ -730,7 +730,7 @@ describe("FreeText Editor", () => {
       pages = await loadAndWait("issue15789.pdf", ".annotationEditorLayer");
       pages = await Promise.all(
         pages.map(async ([browserName, page]) => {
-          await page.select("#scaleSelect", "1");
+          await page.select("#scaleInput", "1");
           return [browserName, page];
         })
       );

@@ -82,18 +82,16 @@ const AnnotationEditorType = {
 const AnnotationEditorParamsType = {
   RESIZE: 1,
   CREATE: 2,
-  FREETEXT_SIZE: 11,
-  FREETEXT_COLOR: 12,
-  FREETEXT_OPACITY: 13,
-  INK_COLOR: 21,
-  INK_THICKNESS: 22,
-  INK_OPACITY: 23,
   HIGHLIGHT_COLOR: 31,
   HIGHLIGHT_DEFAULT_COLOR: 32,
   HIGHLIGHT_THICKNESS: 33,
   HIGHLIGHT_FREE: 34,
   HIGHLIGHT_SHOW_ALL: 35,
-  DRAW_STEP: 41,
+};
+
+const MatchType = {
+  REGEX: "regex",
+  CHARACTER: "character",
 };
 
 // Permission flags from Table 22, Section 7.6.3.2 of the PDF specification.
@@ -1301,4 +1299,5 @@ export {
   Util,
   VerbosityLevel,
   warn,
+  MatchType,
 };

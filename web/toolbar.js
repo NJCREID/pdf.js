@@ -22,6 +22,8 @@ import {
   MAX_SCALE,
   MIN_SCALE,
   toggleExpandedBtn,
+  toggleCheckedBtn,
+  CursorTool,
 } from "./ui_utils.js";
 
 /**
@@ -30,7 +32,7 @@ import {
  * @property {HTMLSpanElement} numPages - Label that contains number of pages.
  * @property {HTMLInputElement} pageNumber - Control for display and user input
  *   of the current page number.
- * @property {HTMLSelectElement} scaleSelect - Scale selection control.
+ * @property {HTMLSelectElement} scaleInput - Scale selection control.
  *   Its width is adjusted, when necessary, on UI localization.
  * @property {HTMLOptionElement} customScaleOption - The item used to display
  *   a non-predefined scale.
@@ -38,9 +40,15 @@ import {
  * @property {HTMLButtonElement} next - Button to go to the next page.
  * @property {HTMLButtonElement} zoomIn - Button to zoom in the pages.
  * @property {HTMLButtonElement} zoomOut - Button to zoom out the pages.
- * @property {HTMLButtonElement} editorFreeTextButton - Button to switch to
+ * @property {HTMLButtonElement} print - Button to print the document.
  *   FreeText editing.
  * @property {HTMLButtonElement} download - Button to download the document.
+ * @property {HTMLButtonElement} pageWidthOption - Button to change to page width scale.
+ * @property {HTMLButtonElement} actualWidthOption - Button to change to actual width scale.
+ * @property {HTMLButtonElement} cursorSelectToolButton - Button to enable the
+ *   select tool.
+ * @property {HTMLButtonElement} cursorHandToolButton - Button to enable the
+ *   hand tool.
  */
 
 class Toolbar {
@@ -68,16 +76,26 @@ class Toolbar {
       { element: options.print, eventName: "print" },
       { element: options.download, eventName: "download" },
       {
-        element: options.editorFreeTextButton,
-        eventName: "switchannotationeditormode",
-        eventDetails: {
-          get mode() {
-            const { classList } = options.editorFreeTextButton;
-            return classList.contains("toggled")
-              ? AnnotationEditorType.NONE
-              : AnnotationEditorType.FREETEXT;
-          },
-        },
+        element: options.pageWidthOption,
+        eventName: "scalechanged",
+        eventDetails: { value: "page-width" },
+      },
+      {
+        element: options.actualWidthOption,
+        eventName: "scalechanged",
+        eventDetails: { value: "page-actual" },
+      },
+      {
+        element: options.cursorSelectToolButton,
+        eventName: "switchcursortool",
+        eventDetails: { tool: CursorTool.SELECT },
+        close: true,
+      },
+      {
+        element: options.cursorHandToolButton,
+        eventName: "switchcursortool",
+        eventDetails: { tool: CursorTool.HAND },
+        close: true,
       },
       {
         element: options.editorHighlightButton,
@@ -88,46 +106,6 @@ class Toolbar {
             return classList.contains("toggled")
               ? AnnotationEditorType.NONE
               : AnnotationEditorType.HIGHLIGHT;
-          },
-        },
-      },
-      {
-        element: options.editorInkButton,
-        eventName: "switchannotationeditormode",
-        eventDetails: {
-          get mode() {
-            const { classList } = options.editorInkButton;
-            return classList.contains("toggled")
-              ? AnnotationEditorType.NONE
-              : AnnotationEditorType.INK;
-          },
-        },
-      },
-      {
-        element: options.editorStampButton,
-        eventName: "switchannotationeditormode",
-        eventDetails: {
-          get mode() {
-            const { classList } = options.editorStampButton;
-            return classList.contains("toggled")
-              ? AnnotationEditorType.NONE
-              : AnnotationEditorType.STAMP;
-          },
-        },
-        telemetry: {
-          type: "editing",
-          data: { action: "pdfjs.image.icon_click" },
-        },
-      },
-      {
-        element: options.editorSignatureButton,
-        eventName: "switchannotationeditormode",
-        eventDetails: {
-          get mode() {
-            const { classList } = options.editorSignatureButton;
-            return classList.contains("toggled")
-              ? AnnotationEditorType.NONE
-              : AnnotationEditorType.SIGNATURE;
           },
         },
       },
@@ -183,6 +161,7 @@ class Toolbar {
     this.updateLoadingIndicatorState();
 
     // Reset the Editor buttons too, since they're document specific.
+    this.eventBus.dispatch("switchcursortool", { source: this, reset: true });
     this.#editorModeChanged({ mode: AnnotationEditorType.DISABLE });
   }
 
@@ -192,7 +171,7 @@ class Toolbar {
       editorHighlightColorPicker,
       editorHighlightButton,
       pageNumber,
-      scaleSelect,
+      scaleInput,
     } = this.#opts;
     const self = this;
 
@@ -215,6 +194,7 @@ class Toolbar {
         }
       });
     }
+
     // The non-button elements within the toolbar.
     pageNumber.addEventListener("click", function () {
       this.select();
@@ -226,18 +206,26 @@ class Toolbar {
       });
     });
 
-    scaleSelect.addEventListener("change", function () {
-      if (this.value === "custom") {
-        return;
-      }
+    scaleInput.addEventListener("change", function () {
+      const value = parseFloat(this.value) / 100;
       eventBus.dispatch("scalechanged", {
         source: self,
-        value: this.value,
+        value,
       });
+    });
+
+    scaleInput.addEventListener("keydown", function (evt) {
+      if (evt.key === "Enter") {
+        const value = parseFloat(this.value) / 100;
+        eventBus.dispatch("scalechanged", {
+          source: self,
+          value,
+        });
+      }
     });
     // Here we depend on browsers dispatching the "click" event *after* the
     // "change" event, when the <select>-element changes.
-    scaleSelect.addEventListener("click", function ({ target }) {
+    scaleInput.addEventListener("click", function ({ target }) {
       // Remove focus when an <option>-element was *clicked*, to improve the UX
       // for mouse users (fixes bug 1300525 and issue 4923).
       if (
@@ -248,7 +236,7 @@ class Toolbar {
       }
     });
     // Suppress context menus for some controls.
-    scaleSelect.oncontextmenu = noContextMenu;
+    scaleInput.oncontextmenu = noContextMenu;
 
     eventBus._on(
       "annotationeditormodechanged",
@@ -263,6 +251,8 @@ class Toolbar {
     });
     eventBus._on("toolbardensity", this.#updateToolbarDensity.bind(this));
 
+    eventBus._on("cursortoolchanged", this.#cursorToolChanged.bind(this));
+
     if (editorHighlightColorPicker) {
       eventBus._on("annotationeditoruimanager", ({ uiManager }) => {
         const cp = (this.#colorPicker = new ColorPicker({ uiManager }));
@@ -276,56 +266,39 @@ class Toolbar {
     }
   }
 
-  #editorModeChanged({ mode }) {
-    const {
-      editorFreeTextButton,
-      editorFreeTextParamsToolbar,
-      editorHighlightButton,
-      editorHighlightParamsToolbar,
-      editorInkButton,
-      editorInkParamsToolbar,
-      editorStampButton,
-      editorStampParamsToolbar,
-      editorSignatureButton,
-      editorSignatureParamsToolbar,
-    } = this.#opts;
+  #cursorToolChanged({ tool, disabled }) {
+    const { cursorSelectToolButton, cursorHandToolButton } = this.#opts;
 
-    toggleExpandedBtn(
-      editorFreeTextButton,
-      mode === AnnotationEditorType.FREETEXT,
-      editorFreeTextParamsToolbar
+    toggleCheckedBtn(
+      cursorSelectToolButton,
+      tool === CursorTool.SELECT,
+      cursorHandToolButton
     );
+    toggleCheckedBtn(
+      cursorHandToolButton,
+      tool === CursorTool.HAND,
+      cursorSelectToolButton
+    );
+
+    cursorSelectToolButton.disabled = disabled;
+    cursorHandToolButton.disabled = disabled;
+  }
+
+  #editorModeChanged({ mode }) {
+    const { editorHighlightButton, editorHighlightParamsToolbar } = this.#opts;
+
     toggleExpandedBtn(
       editorHighlightButton,
       mode === AnnotationEditorType.HIGHLIGHT,
       editorHighlightParamsToolbar
     );
-    toggleExpandedBtn(
-      editorInkButton,
-      mode === AnnotationEditorType.INK,
-      editorInkParamsToolbar
-    );
-    toggleExpandedBtn(
-      editorStampButton,
-      mode === AnnotationEditorType.STAMP,
-      editorStampParamsToolbar
-    );
-    toggleExpandedBtn(
-      editorSignatureButton,
-      mode === AnnotationEditorType.SIGNATURE,
-      editorSignatureParamsToolbar
-    );
 
     const isDisable = mode === AnnotationEditorType.DISABLE;
-    editorFreeTextButton.disabled = isDisable;
     editorHighlightButton.disabled = isDisable;
-    editorInkButton.disabled = isDisable;
-    editorStampButton.disabled = isDisable;
-    editorSignatureButton.disabled = isDisable;
   }
 
   #updateUIState(resetNumPages = false) {
-    const { pageNumber, pagesCount, pageScaleValue, pageScale } = this;
+    const { pageNumber, pagesCount, pageScale } = this;
     const opts = this.#opts;
 
     if (resetNumPages) {
@@ -362,24 +335,8 @@ class Toolbar {
     opts.zoomOut.disabled = pageScale <= MIN_SCALE;
     opts.zoomIn.disabled = pageScale >= MAX_SCALE;
 
-    let predefinedValueFound = false;
-    for (const option of opts.scaleSelect.options) {
-      if (option.value !== pageScaleValue) {
-        option.selected = false;
-        continue;
-      }
-      option.selected = true;
-      predefinedValueFound = true;
-    }
-    if (!predefinedValueFound) {
-      opts.customScaleOption.selected = true;
-      opts.customScaleOption.setAttribute(
-        "data-l10n-args",
-        JSON.stringify({
-          scale: Math.round(pageScale * 10000) / 100,
-        })
-      );
-    }
+    // Update the scale input value
+    opts.scaleInput.value = Math.round(pageScale * 100);
   }
 
   updateLoadingIndicatorState(loading = false) {

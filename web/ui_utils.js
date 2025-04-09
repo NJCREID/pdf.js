@@ -15,7 +15,7 @@
 
 import { MathClamp } from "pdfjs-lib";
 
-const DEFAULT_SCALE_VALUE = "auto";
+const DEFAULT_SCALE_VALUE = 1;
 const DEFAULT_SCALE = 1.0;
 const DEFAULT_SCALE_DELTA = 1.1;
 const MIN_SCALE = 0.1;
@@ -32,20 +32,9 @@ const RenderingStates = {
   FINISHED: 3,
 };
 
-const PresentationModeState = {
-  UNKNOWN: 0,
-  NORMAL: 1,
-  CHANGING: 2,
-  FULLSCREEN: 3,
-};
-
 const SidebarView = {
   UNKNOWN: -1,
   NONE: 0,
-  THUMBS: 1, // Default value.
-  OUTLINE: 2,
-  ATTACHMENTS: 3,
-  LAYERS: 4,
 };
 
 const TextLayerMode = {
@@ -894,7 +883,6 @@ export {
   normalizeWheelEventDelta,
   normalizeWheelEventDirection,
   parseQueryString,
-  PresentationModeState,
   ProgressBar,
   removeNullCharacters,
   RenderingStates,

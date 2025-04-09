@@ -27,11 +27,11 @@
   --page-border: 9px solid transparent;
   --spreadHorizontalWrapped-margin-LR: -3.5px;
   --loading-icon-delay: 400ms;
-  --focus-ring-color: #0060df;
+  --focus-ring-color: #000000;
   --focus-ring-outline: 2px solid var(--focus-ring-color);
 
   @media (prefers-color-scheme: dark) {
-    --focus-ring-color: #0df;
+    --focus-ring-color: rgb(255, 255, 255);
   }
 
   @media screen and (forced-colors: active) {

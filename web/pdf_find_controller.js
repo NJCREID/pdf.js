@@ -19,6 +19,7 @@
 
 import { binarySearchFirstItem, scrollIntoView } from "./ui_utils.js";
 import { getCharacterType, getNormalizeWithNFKC } from "./pdf_find_utils.js";
+import { MatchType } from "../src/shared/util.js";
 
 const FindState = {
   FOUND: 0,
@@ -417,6 +418,8 @@ class PDFFindController {
 
   #visitedPagesCount = 0;
 
+  #matchType = MatchType.REGEX;
+
   /**
    * @param {PDFFindControllerOptions} options
    */
@@ -484,6 +487,7 @@ class PDFFindController {
       this._dirtyMatch = true;
     }
     this.#state = state;
+    this.#matchType = state.matchType ?? MatchType.REGEX;
     if (type !== "highlightallchange") {
       this.#updateUIState(FindState.PENDING);
     }
@@ -582,6 +586,7 @@ class PDFFindController {
     this._pageMatchesLength = [];
     this.#visitedPagesCount = 0;
     this.#state = null;
+    this.#matchType = MatchType.REGEX;
     // Currently selected match.
     this._selected = {
       pageIdx: -1,
@@ -776,7 +781,10 @@ class PDFFindController {
       return; // Do nothing: the matches should be wiped out already.
     }
     const pageContent = this._pageContents[pageIndex];
-    const matcherResult = this.match(query, pageContent, pageIndex);
+    const matcherResult =
+      this.#matchType === MatchType.REGEX
+        ? this.match(query, pageContent, pageIndex)
+        : this.matchFlexible(query, pageContent);
 
     const matches = (this._pageMatches[pageIndex] = []);
     const matchesLength = (this._pageMatchesLength[pageIndex] = []);
@@ -812,6 +820,67 @@ class PDFFindController {
       // the Java side provides only one object to update the counts.
       this.#updateUIResultsCount();
     }
+  }
+
+  /**
+   * @param {string} query - The search query.
+   * @param {string} pageContent - The text content of the page to search in.
+   * @returns {FindMatch[]} An array of matches in the provided page.
+   */
+  matchFlexible(query, pageContent) {
+    // Only handles single string queries
+    if (Array.isArray(query)) {
+      query = query[0] || "";
+    }
+
+    const matches = [];
+    const fullLen = pageContent.length;
+    const queryLen = query.length;
+    let fullIdx = 0;
+    let queryIdx = 0;
+    let matchStart = -1;
+
+    // Helper function to check if character is whitespace
+    const isWhitespace = char => /\s/.test(char);
+
+    while (fullIdx < fullLen && queryIdx < queryLen) {
+      // Skip spaces in both texts
+      while (fullIdx < fullLen && isWhitespace(pageContent[fullIdx])) fullIdx++;
+      while (queryIdx < queryLen && isWhitespace(query[queryIdx])) queryIdx++;
+
+      // If we've reached the end of either text, break
+      if (fullIdx >= fullLen || queryIdx >= queryLen) break;
+
+      // If characters match
+      if (pageContent[fullIdx] === query[queryIdx]) {
+        if (matchStart === -1) matchStart = fullIdx;
+        fullIdx++;
+        queryIdx++;
+      } else {
+        // If no match, reset query index and start position
+        if (matchStart !== -1) {
+          fullIdx = matchStart + 1;
+          matchStart = -1;
+        } else {
+          fullIdx++;
+        }
+        queryIdx = 0;
+      }
+    }
+
+    // Skip any trailing whitespace in query
+    while (queryIdx < queryLen && isWhitespace(query[queryIdx])) queryIdx++;
+
+    // If we found a match (either complete or partial)
+    if (matchStart !== -1) {
+      matches.push({
+        index: matchStart,
+        length: fullIdx - matchStart,
+        partial: queryIdx < queryLen, // Flag to indicate if match continues on next page
+      });
+    }
+
+    return matches;
   }
 
   /**

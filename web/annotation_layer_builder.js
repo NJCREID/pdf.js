@@ -33,7 +33,6 @@ import {
   setLayerDimensions,
   Util,
 } from "pdfjs-lib";
-import { PresentationModeState } from "./ui_utils.js";
 
 /**
  * @typedef {Object} AnnotationLayerBuilderOptions
@@ -172,23 +171,6 @@ class AnnotationLayerBuilder {
     });
 
     this.#annotations = annotations;
-
-    // Ensure that interactive form elements in the annotationLayer are
-    // disabled while PresentationMode is active (see issue 12232).
-    if (this.linkService.isInPresentationMode) {
-      this.#updatePresentationModeState(PresentationModeState.FULLSCREEN);
-    }
-    if (!this.#eventAbortController) {
-      this.#eventAbortController = new AbortController();
-
-      this._eventBus?._on(
-        "presentationmodechanged",
-        evt => {
-          this.#updatePresentationModeState(evt.state);
-        },
-        { signal: this.#eventAbortController.signal }
-      );
-    }
   }
 
   #initAnnotationLayer(viewport, structTreeLayer) {
@@ -259,29 +241,6 @@ class AnnotationLayerBuilder {
     // Don't show the annotation layer if it was explicitly hidden previously.
     if (!this.#externalHide) {
       this.div.hidden = false;
-    }
-  }
-
-  #updatePresentationModeState(state) {
-    if (!this.div) {
-      return;
-    }
-    let disableFormElements = false;
-
-    switch (state) {
-      case PresentationModeState.FULLSCREEN:
-        disableFormElements = true;
-        break;
-      case PresentationModeState.NORMAL:
-        break;
-      default:
-        return;
-    }
-    for (const section of this.div.childNodes) {
-      if (section.hasAttribute("data-internal-link")) {
-        continue;
-      }
-      section.inert = disableFormElements;
     }
   }
 

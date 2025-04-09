@@ -51,7 +51,6 @@ import {
   MAX_AUTO_SCALE,
   MAX_SCALE,
   MIN_SCALE,
-  PresentationModeState,
   removeNullCharacters,
   RenderingStates,
   SCROLLBAR_PADDING,
@@ -369,7 +368,6 @@ class PDFViewer {
       this._scrollUpdate.bind(this),
       abortSignal
     );
-    this.presentationModeState = PresentationModeState.UNKNOWN;
     this._resetView();
 
     if (
@@ -1185,7 +1183,7 @@ class PDFViewer {
     // ... and clear out the active ones.
     state.pages.length = 0;
 
-    if (this._spreadMode === SpreadMode.NONE && !this.isInPresentationMode) {
+    if (this._spreadMode === SpreadMode.NONE) {
       // Finally, append the new page to the viewer.
       const pageView = this._pages[pageNumber - 1];
       viewer.append(pageView.div);
@@ -1212,12 +1210,6 @@ class PDFViewer {
       // Finally, append the new pages to the viewer and apply the spreadMode.
       const spread = document.createElement("div");
       spread.className = "spread";
-
-      if (this.isInPresentationMode) {
-        const dummyPage = document.createElement("div");
-        dummyPage.className = "dummyPage";
-        spread.append(dummyPage);
-      }
 
       for (const i of pageIndexSet) {
         const pageView = this._pages[i];
@@ -1266,7 +1258,7 @@ class PDFViewer {
       this.update();
     }
 
-    if (!pageSpot && !this.isInPresentationMode) {
+    if (!pageSpot) {
       const left = div.offsetLeft + div.clientLeft,
         right = left + div.clientWidth;
       const { scrollLeft, clientWidth } = this.container;
@@ -1343,10 +1335,7 @@ class PDFViewer {
     if (!noScroll) {
       let page = this._currentPageNumber,
         dest;
-      if (
-        this._location &&
-        !(this.isInPresentationMode || this.isChangingPresentationMode)
-      ) {
+      if (this._location) {
         page = this._location.pageNumber;
         dest = [
           null,
@@ -1407,16 +1396,7 @@ class PDFViewer {
       let hPadding = SCROLLBAR_PADDING,
         vPadding = VERTICAL_PADDING;
 
-      if (this.isInPresentationMode) {
-        // Pages have a 2px (transparent) border in PresentationMode, see
-        // the `web/pdf_viewer.css` file.
-        hPadding = vPadding = 4; // 2 * 2px
-        if (this._spreadMode !== SpreadMode.NONE) {
-          // Account for two pages being visible in PresentationMode, thus
-          // "doubling" the total border width.
-          hPadding *= 2;
-        }
-      } else if (
+      if (
         (typeof PDFJSDev === "undefined" || PDFJSDev.test("GENERIC")) &&
         this.removePageBorders
       ) {
@@ -1437,12 +1417,6 @@ class PDFViewer {
           break;
         case "page-width":
           scale = pageWidthScale;
-          break;
-        case "page-height":
-          scale = pageHeightScale;
-          break;
-        case "page-fit":
-          scale = Math.min(pageWidthScale, pageHeightScale);
           break;
         case "auto":
           // For pages in landscape mode, fit the page height to the viewer
@@ -1466,11 +1440,6 @@ class PDFViewer {
    */
   #resetCurrentPageView() {
     const pageView = this._pages[this._currentPageNumber - 1];
-
-    if (this.isInPresentationMode) {
-      // Fixes the case when PDF has different page sizes.
-      this.#setScale(this._currentScaleValue, { noScroll: true });
-    }
     this.#scrollIntoView(pageView);
   }
 
@@ -1523,7 +1492,7 @@ class PDFViewer {
       return;
     }
 
-    if (this.isInPresentationMode || !destArray) {
+    if (!destArray) {
       this._setCurrentPageNumber(pageNumber, /* resetCurrentPageView = */ true);
       return;
     }
@@ -1661,9 +1630,8 @@ class PDFViewer {
     const intTop = Math.round(topLeft[1]);
 
     let pdfOpenParams = `#page=${pageNumber}`;
-    if (!this.isInPresentationMode) {
-      pdfOpenParams += `&zoom=${normalizedScaleValue},${intLeft},${intTop}`;
-    }
+
+    pdfOpenParams += `&zoom=${normalizedScaleValue},${intLeft},${intTop}`;
 
     this._location = {
       pageNumber,
@@ -1762,24 +1730,12 @@ class PDFViewer {
     return getComputedStyle(this.container).direction === "rtl";
   }
 
-  get isInPresentationMode() {
-    return this.presentationModeState === PresentationModeState.FULLSCREEN;
-  }
-
-  get isChangingPresentationMode() {
-    return this.presentationModeState === PresentationModeState.CHANGING;
-  }
-
   get isHorizontalScrollbarEnabled() {
-    return this.isInPresentationMode
-      ? false
-      : this.container.scrollWidth > this.container.clientWidth;
+    return this.container.scrollWidth > this.container.clientWidth;
   }
 
   get isVerticalScrollbarEnabled() {
-    return this.isInPresentationMode
-      ? false
-      : this.container.scrollHeight > this.container.clientHeight;
+    return this.container.scrollHeight > this.container.clientHeight;
   }
 
   _getVisiblePages() {

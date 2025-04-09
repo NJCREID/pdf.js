@@ -16,7 +16,7 @@
 /** @typedef {import("./event_utils.js").EventBus} EventBus */
 
 import { AnnotationEditorType, shadow } from "pdfjs-lib";
-import { CursorTool, PresentationModeState } from "./ui_utils.js";
+import { CursorTool } from "./ui_utils.js";
 import { GrabToPan } from "./grab_to_pan.js";
 
 /**
@@ -125,14 +125,12 @@ class PDFCursorTools {
         this.switchTool(evt.tool);
       } else if (this.#prevActive !== null) {
         annotationEditorMode = AnnotationEditorType.NONE;
-        presentationModeState = PresentationModeState.NORMAL;
 
         enableActive();
       }
     });
 
-    let annotationEditorMode = AnnotationEditorType.NONE,
-      presentationModeState = PresentationModeState.NORMAL;
+    let annotationEditorMode = AnnotationEditorType.NONE;
 
     const disableActive = () => {
       this.#prevActive ??= this.#active; // Keep track of the first one.
@@ -141,8 +139,7 @@ class PDFCursorTools {
     const enableActive = () => {
       if (
         this.#prevActive !== null &&
-        annotationEditorMode === AnnotationEditorType.NONE &&
-        presentationModeState === PresentationModeState.NORMAL
+        annotationEditorMode === AnnotationEditorType.NONE
       ) {
         this.#switchTool(this.#prevActive);
         this.#prevActive = null;
@@ -155,16 +152,6 @@ class PDFCursorTools {
       if (mode === AnnotationEditorType.NONE) {
         enableActive();
       } else {
-        disableActive();
-      }
-    });
-
-    this.eventBus._on("presentationmodechanged", ({ state }) => {
-      presentationModeState = state;
-
-      if (state === PresentationModeState.NORMAL) {
-        enableActive();
-      } else if (state === PresentationModeState.FULLSCREEN) {
         disableActive();
       }
     });

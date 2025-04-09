@@ -1059,13 +1059,13 @@
 }
 
 .colorPicker {
-  --hover-outline-color: #0250bb;
-  --selected-outline-color: #0060df;
+  --hover-outline-color: #2e2e2e;
+  --selected-outline-color: #000000;
   --swatch-border-color: #cfcfd8;
 
   @media (prefers-color-scheme: dark) {
-    --hover-outline-color: #80ebff;
-    --selected-outline-color: #aaf2ff;
+    --hover-outline-color: #ffffff;
+    --selected-outline-color: #cecece;
     --swatch-border-color: #52525e;
   }
 
@@ -1079,7 +1079,7 @@
     width: 16px;
     height: 16px;
     border: 1px solid var(--swatch-border-color);
-    border-radius: 100%;
+    border-radius: 4px;
     outline-offset: 2px;
     box-sizing: border-box;
     forced-color-adjust: none;
